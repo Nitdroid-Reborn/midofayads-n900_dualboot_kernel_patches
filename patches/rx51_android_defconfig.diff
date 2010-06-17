@@ -1,12 +1,12 @@
 Index: kernel-2.6.28/arch/arm/configs/rx51_android_defconfig
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ kernel-2.6.28/arch/arm/configs/rx51_android_defconfig	2010-06-16 02:47:41.000000000 +0400
-@@ -0,0 +1,2072 @@
++++ kernel-2.6.28/arch/arm/configs/rx51_android_defconfig	2010-06-17 07:29:55.000000000 +0400
+@@ -0,0 +1,2076 @@
 +#
 +# Automatically generated make config: don't edit
 +# Linux kernel version: 2.6.28-omap1
-+# Tue Jun 15 17:06:40 2010
++# Thu Jun 17 07:27:55 2010
 +#
 +CONFIG_ARM=y
 +CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -575,7 +575,10 @@ Index: kernel-2.6.28/arch/arm/configs/rx51_android_defconfig
 +# CONFIG_MAC80211_DEBUGFS is not set
 +# CONFIG_MAC80211_DEBUG_MENU is not set
 +# CONFIG_IEEE80211 is not set
-+# CONFIG_RFKILL is not set
++CONFIG_RFKILL=m
++CONFIG_RFKILL_PM=y
++# CONFIG_RFKILL_INPUT is not set
++CONFIG_RFKILL_LEDS=y
 +# CONFIG_NET_9P is not set
 +
 +#
@@ -803,6 +806,7 @@ Index: kernel-2.6.28/arch/arm/configs/rx51_android_defconfig
 +# CONFIG_USB_PEGASUS is not set
 +# CONFIG_USB_RTL8150 is not set
 +# CONFIG_USB_USBNET is not set
++# CONFIG_USB_HSO is not set
 +# CONFIG_WAN is not set
 +# CONFIG_PPP is not set
 +# CONFIG_SLIP is not set
@@ -1390,7 +1394,7 @@ Index: kernel-2.6.28/arch/arm/configs/rx51_android_defconfig
 +CONFIG_SND_SOC_TLV320AIC3X=y
 +# CONFIG_SOUND_PRIME is not set
 +CONFIG_HID_SUPPORT=y
-+CONFIG_HID=m
++CONFIG_HID=y
 +# CONFIG_HID_DEBUG is not set
 +# CONFIG_HIDRAW is not set
 +
