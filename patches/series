@@ -3,3 +3,5 @@ power.diff
 switch_support.diff
 rx51_android_defconfig.diff
 kexec.diff
+overclock.diff
+ondemand-avoid.diff
