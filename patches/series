@@ -5,3 +5,4 @@ rx51_android_defconfig.diff
 kexec.diff
 overclock.diff
 ondemand-avoid.diff
+gethercharge.diff
