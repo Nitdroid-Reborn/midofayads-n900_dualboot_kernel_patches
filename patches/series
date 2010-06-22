@@ -1,5 +1,5 @@
 an900.diff
-power.diff
+bq_matan.diff
 switch_support.diff
 rx51_android_defconfig.diff
 kexec.diff

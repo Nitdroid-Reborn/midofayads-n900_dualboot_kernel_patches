@@ -1,7 +1,7 @@
 Index: kernel-2.6.28/drivers/power/bq27x00_battery.c
 ===================================================================
---- kernel-2.6.28.orig/drivers/power/bq27x00_battery.c	2010-06-07 15:41:40.000000000 +0400
-+++ kernel-2.6.28/drivers/power/bq27x00_battery.c	2010-06-07 15:41:36.000000000 +0400
+--- kernel-2.6.28.orig/drivers/power/bq27x00_battery.c	2010-06-22 04:04:21.000000000 +0400
++++ kernel-2.6.28/drivers/power/bq27x00_battery.c	2010-06-22 04:05:23.000000000 +0400
 @@ -358,6 +358,22 @@
  	.id_table = bq27200_id,
  };
