@@ -853,7 +853,7 @@ Index: kernel-2.6.28/drivers/char/mem.c
 Index: kernel-2.6.28/drivers/cpufreq/cpufreq.c
 ===================================================================
 --- kernel-2.6.28.orig/drivers/cpufreq/cpufreq.c	2008-12-25 02:26:37.000000000 +0300
-+++ kernel-2.6.28/drivers/cpufreq/cpufreq.c	2010-06-06 16:26:27.000000000 +0400
++++ kernel-2.6.28/drivers/cpufreq/cpufreq.c	2010-06-22 04:04:20.000000000 +0400
 @@ -822,8 +822,8 @@
  		dprintk("initialization failed\n");
  		goto err_out;
@@ -10136,8 +10136,8 @@ Index: kernel-2.6.28/drivers/switch/Makefile
 Index: kernel-2.6.28/drivers/switch/switch_class.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ kernel-2.6.28/drivers/switch/switch_class.c	2010-06-15 18:00:13.000000000 +0400
-@@ -0,0 +1,169 @@
++++ kernel-2.6.28/drivers/switch/switch_class.c	2010-06-22 03:59:20.000000000 +0400
+@@ -0,0 +1,174 @@
 +/*
 + *  drivers/switch/switch_class.c
 + *
@@ -10163,13 +10163,14 @@ Index: kernel-2.6.28/drivers/switch/switch_class.c
 +#include <linux/err.h>
 +#include <linux/switch.h>
 +
-+struct class *switch_class = NULL;
++struct class *switch_class;
 +static atomic_t device_count;
 +
-+static ssize_t state_show(struct device *device, char *buf)
++static ssize_t state_show(struct device *dev, struct device_attribute *attr,
++		char *buf)
 +{
 +	struct switch_dev *sdev = (struct switch_dev *)
-+		dev_get_drvdata(device);
++		dev_get_drvdata(dev);
 +
 +	if (sdev->print_state) {
 +		int ret = sdev->print_state(sdev, buf);
@@ -10179,10 +10180,11 @@ Index: kernel-2.6.28/drivers/switch/switch_class.c
 +	return sprintf(buf, "%d\n", sdev->state);
 +}
 +
-+static ssize_t name_show(struct device *device, char *buf)
++static ssize_t name_show(struct device *dev, struct device_attribute *attr,
++		char *buf)
 +{
 +	struct switch_dev *sdev = (struct switch_dev *)
-+		dev_get_drvdata(device);
++		dev_get_drvdata(dev);
 +
 +	if (sdev->print_name) {
 +		int ret = sdev->print_name(sdev, buf);
@@ -10209,27 +10211,28 @@ Index: kernel-2.6.28/drivers/switch/switch_class.c
 +
 +		prop_buf = (char *)get_zeroed_page(GFP_KERNEL);
 +		if (prop_buf) {
-+			length = name_show(sdev->device, prop_buf);
++			length = name_show(sdev->dev, NULL, prop_buf);
 +			if (length > 0) {
 +				if (prop_buf[length - 1] == '\n')
-+				   prop_buf[length - 1] = 0;
-+				snprintf(name_buf, sizeof(name_buf), "SWITCH_NAME=%s", prop_buf);
++					prop_buf[length - 1] = 0;
++				snprintf(name_buf, sizeof(name_buf),
++					"SWITCH_NAME=%s", prop_buf);
 +				envp[env_offset++] = name_buf;
 +			}
-+			length = state_show(sdev->device, prop_buf);
++			length = state_show(sdev->dev, NULL, prop_buf);
 +			if (length > 0) {
 +				if (prop_buf[length - 1] == '\n')
-+				   prop_buf[length - 1] = 0;
-+				snprintf(state_buf, sizeof(state_buf), "SWITCH_STATE=%s", prop_buf);
++					prop_buf[length - 1] = 0;
++				snprintf(state_buf, sizeof(state_buf),
++					"SWITCH_STATE=%s", prop_buf);
 +				envp[env_offset++] = state_buf;
 +			}
 +			envp[env_offset] = NULL;
-+			kobject_uevent_env(&sdev->device->kobj, KOBJ_CHANGE, envp);
++			kobject_uevent_env(&sdev->dev->kobj, KOBJ_CHANGE, envp);
 +			free_page((unsigned long)prop_buf);
-+		}
-+		else {
++		} else {
 +			printk(KERN_ERR "out of memory in switch_set_state\n");
-+			kobject_uevent(&sdev->device->kobj, KOBJ_CHANGE);
++			kobject_uevent(&sdev->dev->kobj, KOBJ_CHANGE);
 +		}
 +	}
 +}
@@ -10258,23 +10261,24 @@ Index: kernel-2.6.28/drivers/switch/switch_class.c
 +	}
 +
 +	sdev->index = atomic_inc_return(&device_count);
-+	sdev->device = device_create(switch_class, NULL,
-+		MKDEV(0, sdev->index), sdev, sdev->name);
-+	if (IS_ERR(sdev->device))
-+		return PTR_ERR(sdev->device);
++	sdev->dev = device_create(switch_class, NULL,
++		MKDEV(0, sdev->index), NULL, sdev->name);
++	if (IS_ERR(sdev->dev))
++		return PTR_ERR(sdev->dev);
 +
-+	ret = device_create_file(sdev->device, &dev_attr_state);
++	ret = device_create_file(sdev->dev, &dev_attr_state);
 +	if (ret < 0)
 +		goto err_create_file_1;
-+	ret = device_create_file(sdev->device, &dev_attr_name);
++	ret = device_create_file(sdev->dev, &dev_attr_name);
 +	if (ret < 0)
 +		goto err_create_file_2;
 +
++	dev_set_drvdata(sdev->dev, sdev);
 +	sdev->state = 0;
 +	return 0;
 +
 +err_create_file_2:
-+	device_remove_file(sdev->device, &dev_attr_state);
++	device_remove_file(sdev->dev, &dev_attr_state);
 +err_create_file_1:
 +	device_destroy(switch_class, MKDEV(0, sdev->index));
 +	printk(KERN_ERR "switch: Failed to register driver %s\n", sdev->name);
@@ -10285,9 +10289,10 @@ Index: kernel-2.6.28/drivers/switch/switch_class.c
 +
 +void switch_dev_unregister(struct switch_dev *sdev)
 +{
-+	device_remove_file(sdev->device, &dev_attr_name);
-+	device_remove_file(sdev->device, &dev_attr_state);
++	device_remove_file(sdev->dev, &dev_attr_name);
++	device_remove_file(sdev->dev, &dev_attr_state);
 +	device_destroy(switch_class, MKDEV(0, sdev->index));
++	dev_set_drvdata(sdev->dev, NULL);
 +}
 +EXPORT_SYMBOL_GPL(switch_dev_unregister);
 +
@@ -10310,8 +10315,8 @@ Index: kernel-2.6.28/drivers/switch/switch_class.c
 Index: kernel-2.6.28/drivers/switch/switch_gpio.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ kernel-2.6.28/drivers/switch/switch_gpio.c	2010-06-16 02:04:09.000000000 +0400
-@@ -0,0 +1,172 @@
++++ kernel-2.6.28/drivers/switch/switch_gpio.c	2010-06-21 18:00:54.000000000 +0400
+@@ -0,0 +1,181 @@
 +/*
 + *  drivers/switch/switch_gpio.c
 + *
@@ -10406,29 +10411,38 @@ Index: kernel-2.6.28/drivers/switch/switch_gpio.c
 +	switch_data->sdev.print_state = switch_gpio_print_state;
 +
 +    ret = switch_dev_register(&switch_data->sdev);
-+	if (ret < 0)
++	if (ret < 0) {
++		printk(KERN_ERR "gpio_switch_probe dev_register");
 +		goto err_switch_dev_register;
++	}
 +
 +	ret = gpio_request(switch_data->gpio, pdev->name);
-+	if (ret < 0)
++	if (ret < 0) {
++		printk(KERN_ERR "gpio_switch_probe gpio_request");
 +		goto err_request_gpio;
++	}
 +
 +	ret = gpio_direction_input(switch_data->gpio);
-+	if (ret < 0)
++	if (ret < 0) {
++		printk(KERN_ERR "gpio_switch_probe dir_input");
 +		goto err_set_gpio_input;
++	}
 +
 +	INIT_WORK(&switch_data->work, gpio_switch_work);
 +
 +	switch_data->irq = gpio_to_irq(switch_data->gpio);
 +	if (switch_data->irq < 0) {
 +		ret = switch_data->irq;
++		printk(KERN_ERR "gpio_switch_probe gpio_to_irq");
 +		goto err_detect_irq_num_failed;
 +	}
 +
 +	ret = request_irq(switch_data->irq, gpio_irq_handler,
 +			  IRQF_TRIGGER_LOW, pdev->name, switch_data);
-+	if (ret < 0)
++	if (ret < 0) {
++		printk(KERN_ERR "gpio_switch_probe request_irq");
 +		goto err_request_irq;
++	}
 +
 +	/* Perform initial detection */
 +	gpio_switch_work(&switch_data->work);
@@ -15687,7 +15701,7 @@ Index: kernel-2.6.28/include/linux/sockios.h
 Index: kernel-2.6.28/include/linux/switch.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ kernel-2.6.28/include/linux/switch.h	2010-06-06 16:26:27.000000000 +0400
++++ kernel-2.6.28/include/linux/switch.h	2010-06-22 04:04:30.000000000 +0400
 @@ -0,0 +1,53 @@
 +/*
 + *  Switch class driver
@@ -15711,7 +15725,7 @@ Index: kernel-2.6.28/include/linux/switch.h
 +
 +struct switch_dev {
 +	const char	*name;
-+	struct device	*device;
++	struct device	*dev;
 +	int		index;
 +	int		state;
 +

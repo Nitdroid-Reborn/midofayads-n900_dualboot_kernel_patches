@@ -1,12 +1,12 @@
 Index: kernel-2.6.28/arch/arm/configs/rx51_android_defconfig
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ kernel-2.6.28/arch/arm/configs/rx51_android_defconfig	2010-06-20 19:26:12.000000000 +0400
++++ kernel-2.6.28/arch/arm/configs/rx51_android_defconfig	2010-06-22 04:38:42.000000000 +0400
 @@ -0,0 +1,2076 @@
 +#
 +# Automatically generated make config: don't edit
 +# Linux kernel version: 2.6.28-omap1
-+# Sun Jun 20 19:25:37 2010
++# Mon Jun 21 21:49:00 2010
 +#
 +CONFIG_ARM=y
 +CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1636,7 +1636,7 @@ Index: kernel-2.6.28/arch/arm/configs/rx51_android_defconfig
 +# CONFIG_LEDS_TRIGGER_DEFAULT_ON is not set
 +# CONFIG_LEDS_TRIGGER_SLEEP is not set
 +CONFIG_SWITCH=y
-+CONFIG_SWITCH_GPIO=y
++# CONFIG_SWITCH_GPIO is not set
 +CONFIG_RTC_LIB=y
 +CONFIG_RTC_CLASS=y
 +CONFIG_RTC_HCTOSYS=y

@@ -1,50 +1,115 @@
-Index: kernel-2.6.28/arch/arm/mach-omap2/board-rx51-peripherals.c
+Index: kernel-2.6.28/drivers/misc/nokia-av.c
 ===================================================================
---- kernel-2.6.28.orig/arch/arm/mach-omap2/board-rx51-peripherals.c	2010-06-15 03:41:47.000000000 +0400
-+++ kernel-2.6.28/arch/arm/mach-omap2/board-rx51-peripherals.c	2010-06-15 19:01:55.000000000 +0400
-@@ -23,6 +23,7 @@
- #include <linux/delay.h>
- #include <linux/lis302dl.h>
- #include <linux/leds-lp5523.h>
+--- kernel-2.6.28.orig/drivers/misc/nokia-av.c	2010-06-22 04:04:21.000000000 +0400
++++ kernel-2.6.28/drivers/misc/nokia-av.c	2010-06-22 04:41:10.000000000 +0400
+@@ -30,6 +30,7 @@
+ #include <linux/gpio.h>
+ #include <linux/i2c/twl4030-madc.h>
+ #include <linux/nokia-av.h>
 +#include <linux/switch.h>
  
- #include <asm/mach-types.h>
+ #include <sound/jack.h>
  
-@@ -265,10 +266,23 @@
- 	},
- };
+@@ -83,6 +84,7 @@
+ 	struct work_struct hs_btn_work;
+ 	struct timer_list hs_btn_timer;
+ 	struct delayed_work hs_btn_report_work;
++	struct switch_dev sdev;
+ 	int hs_btn_pressed;
  
-+static struct gpio_switch_platform_data headset_switch_data = {
-+       .name = "h2w",
-+       .gpio = OMAP_MAX_GPIO_LINES + 177,        /*TWL4030 GPIO_177 */
-+};
+ 	int autodetect;
+@@ -372,6 +374,7 @@
+ 	struct nokia_av_drvdata *drvdata = container_of(work,
+ 		struct nokia_av_drvdata, detection_work.work);
+ 	int type;
++	int switch_status;
+ 
+ 	/* This is a shortcut detection for connecting open cable */
+ 	if (drvdata->type == OPEN_CABLE && gpio_get_value(drvdata->eci1_gpio)) {
+@@ -420,13 +423,15 @@
+ 		drvdata->dettype = UNKNOWN;
+ 		drvdata->detcount = 0;
+ 		drvdata->dettotal = 0;
+-
++		switch_status = 0;
+ 		switch (type) {
+ 		case BASIC_HEADSET:
++			switch_status = (1 << 0);
+ 			status = SND_JACK_HEADSET;
+ 			hs_btn_input_init(drvdata);
+ 			break;
+ 		case HEADPHONES:
++			switch_status = (1 << 1);
+ 			status = SND_JACK_HEADPHONE;
+ 			break;
+ 		case VIDEO_CABLE:
+@@ -442,7 +447,7 @@
+ 		status |= SND_JACK_MECHANICAL;
+ 
+ 		rx51_jack_report(status);
+-
++		switch_set_state(&drvdata->sdev, switch_status);
+ 	} else {
+ 		queue_delayed_work(drvdata->workqueue,
+ 				&drvdata->detection_work,
+@@ -489,6 +494,7 @@
+ 
+ 		rx51_set_eci_mode(1);
+ 		rx51_jack_report(0);
++		switch_set_state(&drvdata->sdev, 0);
+ 	}
+ }
+ 
+@@ -618,6 +624,16 @@
+ 	sysfs_remove_group(&dev->kobj, &nokia_av_group);
+ }
+ 
++static ssize_t switch_print_state(struct switch_dev *sdev, char *buf)
++{
++	struct nokia_av_drvdata	*drvdata =
++		container_of(sdev, struct nokia_av_drvdata, sdev);
++	int state = switch_get_state(sdev);
 +
-+static struct platform_device headset_switch_device = {
-+       .name             = "h2w",
-+       .dev = {
-+               .platform_data    = &headset_switch_data,
-+       }
-+};
++	printk(KERN_ERR "state=%d\n", state);
++	return snprintf(buf, PAGE_SIZE, "%d\n", state);
++}
 +
- static struct platform_device *rx51_peripherals_devices[] = {
- 	&rx51_smc91x_device,
- 	&rx51_camera_button_device,
- 	&rx51_lirc_device,
-+	&headset_switch_device,
- };
- 
- static void __init rx51_init_smc91x(void)
-Index: kernel-2.6.28/drivers/switch/switch_gpio.c
-===================================================================
---- kernel-2.6.28.orig/drivers/switch/switch_gpio.c	2010-06-15 18:00:16.000000000 +0400
-+++ kernel-2.6.28/drivers/switch/switch_gpio.c	2010-06-15 18:02:31.000000000 +0400
-@@ -112,7 +112,8 @@
+ static int __init nokia_av_probe(struct platform_device *pdev)
+ {
+ 	struct nokia_av_platform_data *pdata;
+@@ -645,6 +661,17 @@
+ 		goto err_workqueue;
  	}
  
- 	ret = request_irq(switch_data->irq, gpio_irq_handler,
--			  IRQF_TRIGGER_LOW, pdev->name, switch_data);
-+			  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-+			  pdev->name, switch_data);
- 	if (ret < 0)
- 		goto err_request_irq;
++	drvdata->sdev.name = "h2w";
++	drvdata->sdev.print_state = switch_print_state;
++
++	ret = switch_dev_register(&drvdata->sdev);
++	if (ret < 0) {
++		printk(KERN_ERR "gpio_switch_probe dev_register");
++		goto err_switch_dev_register;
++	}
++
++	switch_set_state(&drvdata->sdev, 0);
++
+ 	drvdata->eci0_gpio = pdata->eci0_gpio;
+ 	drvdata->eci1_gpio = pdata->eci1_gpio;
+ 	drvdata->headph_gpio = pdata->headph_gpio;
+@@ -722,6 +749,9 @@
+ err_eci0:
+ 	nokia_av_unregister_sysfs(pdev);
+ 
++err_switch_dev_register:
++	switch_dev_unregister(&drvdata->sdev);
++
+ err_sysfs:
+ 	destroy_workqueue(drvdata->workqueue);
+ 
+@@ -753,6 +783,7 @@
+ 
+ 	destroy_workqueue(drvdata->workqueue);
+ 
++	switch_dev_unregister(&drvdata->sdev);
+ 	platform_set_drvdata(pdev, NULL);
+ 	kfree(drvdata);
  
