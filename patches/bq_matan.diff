@@ -1,8 +1,35 @@
 Index: kernel-2.6.28/drivers/power/bq27x00_battery.c
 ===================================================================
 --- kernel-2.6.28.orig/drivers/power/bq27x00_battery.c	2010-06-22 04:04:21.000000000 +0400
-+++ kernel-2.6.28/drivers/power/bq27x00_battery.c	2010-06-22 04:05:23.000000000 +0400
-@@ -358,6 +358,22 @@
++++ kernel-2.6.28/drivers/power/bq27x00_battery.c	2010-06-29 07:16:36.000000000 +0400
+@@ -60,7 +60,10 @@
+ };
+ 
+ static enum power_supply_property bq27x00_battery_props[] = {
++	POWER_SUPPLY_PROP_HEALTH,
+ 	POWER_SUPPLY_PROP_PRESENT,
++	POWER_SUPPLY_PROP_STATUS,
++	POWER_SUPPLY_PROP_TECHNOLOGY,
+ 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+ 	POWER_SUPPLY_PROP_CURRENT_NOW,
+ 	POWER_SUPPLY_PROP_CAPACITY,
+@@ -189,6 +192,15 @@
+ 	case POWER_SUPPLY_PROP_TEMP:
+ 		val->intval = bq27x00_battery_temperature(di);
+ 		break;
++	case POWER_SUPPLY_PROP_TECHNOLOGY:
++		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
++		break;
++	case POWER_SUPPLY_PROP_HEALTH:
++		val->intval = POWER_SUPPLY_HEALTH_GOOD;
++		break;
++	case POWER_SUPPLY_PROP_STATUS:
++		val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
+@@ -358,6 +370,22 @@
  	.id_table = bq27200_id,
  };
  
@@ -25,7 +52,7 @@ Index: kernel-2.6.28/drivers/power/bq27x00_battery.c
  static int __init bq27x00_battery_init(void)
  {
  	int ret;
-@@ -365,6 +381,7 @@
+@@ -365,6 +393,7 @@
  	ret = i2c_add_driver(&bq27200_battery_driver);
  	if (ret)
  		printk(KERN_ERR "Unable to register BQ27200 driver\n");
